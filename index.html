@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lector de QR Plugged</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Font: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5; /* Un gris claro para el fondo */
+        }
+        /* Estilos para el contenedor del lector QR */
+        #reader {
+            width: 100%;
+            max-width: 500px; /* Limita el ancho para pantallas grandes */
+            border-radius: 1rem; /* Bordes redondeados */
+            overflow: hidden; /* Asegura que el contenido se ajuste a los bordes redondeados */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* Sombra suave */
+        }
+        /* Estilos para la sección de resultados */
+        #result-display {
+            background-color: #ffffff;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        /* Estilos para el botón de inicio/parada */
+        .action-button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+        }
+        .action-button:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="container mx-auto max-w-2xl bg-white rounded-2xl shadow-xl p-6 md:p-8 lg:p-10">
+        <h1 class="text-3xl md:text-4xl font-bold text-center text-gray-800 mb-6">Lector de QR Plugged</h1>
+        <p class="text-center text-gray-600 mb-8">Escanea un código QR para validar o buscar un usuario.</p>
+
+        <!-- Contenedor del Lector QR -->
+        <div class="flex flex-col items-center mb-8">
+            <div id="reader" class="mb-4"></div>
+            <div class="flex space-x-4">
+                <button id="startButton" class="action-button bg-blue-600 text-white hover:bg-blue-700">Iniciar Lector</button>
+                <button id="stopButton" class="action-button bg-red-600 text-white hover:bg-red-700" disabled>Detener Lector</button>
+            </div>
+        </div>
+
+        <!-- Sección de Resultados -->
+        <div id="result-display" class="w-full text-center">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Datos del Usuario:</h2>
+            <div id="qr-result" class="text-lg text-gray-700 mb-4 break-words">
+                <p>Escanea un QR para ver los datos aquí.</p>
+            </div>
+
+            <!-- Datos simulados del usuario (se llenarán con la lógica de backend) -->
+            <div id="user-data" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                <div class="flex items-center justify-center col-span-full md:col-span-1">
+                    <img id="user-photo" src="https://placehold.co/120x120/E0E0E0/888888?text=Foto" alt="Foto del Usuario" class="w-32 h-32 rounded-full object-cover border-4 border-gray-200 shadow-md">
+                </div>
+                <div class="md:col-span-1">
+                    <p class="text-gray-600"><strong class="text-gray-800">Nombre:</strong> <span id="display-name">N/A</span></p>
+                    <p class="text-gray-600"><strong class="text-gray-800">Apellido:</strong> <span id="display-lastname">N/A</span></p>
+                    <p class="text-gray-600"><strong class="text-gray-800">RUT:</strong> <span id="display-rut">N/A</span></p>
+                    <p class="text-gray-600"><strong class="text-gray-800">Empresa:</strong> <span id="display-company">N/A</span></p>
+                    <p class="text-gray-600"><strong class="text-gray-800">Cargo:</strong> <span id="display-position">N/A</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- html5-qrcode library -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+    <script>
+        // Función para inicializar y manejar el lector QR
+        function initializeQrScanner() {
+            const html5QrCode = new Html5Qrcode("reader");
+            const qrResultDiv = document.getElementById('qr-result');
+            const userPhoto = document.getElementById('user-photo');
+            const displayName = document.getElementById('display-name');
+            const displayLastname = document.getElementById('display-lastname');
+            const displayRut = document.getElementById('display-rut');
+            const displayCompany = document.getElementById('display-company');
+            const displayPosition = document.getElementById('display-position');
+            const startButton = document.getElementById('startButton');
+            const stopButton = document.getElementById('stopButton');
+
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+            // Función para simular la obtención de datos de usuario
+            // En el futuro, esto hará una llamada a una Azure Function
+            function fetchUserData(rut) {
+                // Simulación de datos de usuario para la demostración
+                const mockUsers = {
+                    "12345678-9": {
+                        photo: "https://placehold.co/120x120/3498db/ffffff?text=Juan",
+                        name: "Juan",
+                        lastname: "Pérez",
+                        company: "Empresa A",
+                        position: "Gerente"
+                    },
+                    "98765432-1": {
+                        photo: "https://placehold.co/120x120/2ecc71/ffffff?text=Maria",
+                        name: "María",
+                        lastname: "González",
+                        company: "Compañía B",
+                        position: "Analista"
+                    },
+                    "22334455-K": {
+                        photo: "https://placehold.co/120x120/f39c12/ffffff?text=Pedro",
+                        name: "Pedro",
+                        lastname: "Ramírez",
+                        company: "Innovaciones C",
+                        position: "Desarrollador"
+                    }
+                };
+
+                // Limpiar el RUT (eliminar puntos y guiones para la búsqueda)
+                const cleanedRut = rut.replace(/\./g, '').replace(/-/g, '').toUpperCase();
+                let foundUser = null;
+
+                // Buscar el RUT en los mockUsers, ignorando el dígito verificador para la simulación
+                for (const mockRut in mockUsers) {
+                    const cleanedMockRut = mockRut.replace(/\./g, '').replace(/-/g, '').slice(0, -1).toUpperCase(); // Eliminar dígito verificador
+                    if (cleanedRut.startsWith(cleanedMockRut)) {
+                        foundUser = mockUsers[mockRut];
+                        break;
+                    }
+                }
+
+                return foundUser;
+            }
+
+            // Función que se ejecuta cuando se escanea un QR exitosamente
+            const onScanSuccess = (decodedText, decodedResult) => {
+                console.log(`Código QR detectado: ${decodedText}`);
+                qrResultDiv.innerHTML = `<p class="font-bold text-green-600">QR Escaneado Correctamente:</p><p>${decodedText}</p>`;
+
+                // Extraer RUT del QR (simulación para cédula chilena)
+                // En un caso real, la cédula chilena tiene un formato específico.
+                // Aquí asumimos que el QR contiene el RUT directamente o una cadena que podemos parsear.
+                // Para el ejemplo, si el QR es "RUT:12.345.678-9", extraemos el RUT.
+                let rut = decodedText;
+                const rutMatch = decodedText.match(/RUT:(\d{1,2}\.\d{3}\.\d{3}-[\dkK])/i);
+                if (rutMatch && rutMatch[1]) {
+                    rut = rutMatch[1];
+                } else {
+                    // Si no tiene el formato "RUT:", asumimos que el texto escaneado es el RUT
+                    // y lo limpiamos (eliminamos puntos y guiones)
+                    rut = decodedText.replace(/\./g, '').replace(/-/g, '');
+                }
+
+                // Limpiar el RUT para mostrarlo
+                const displayRutCleaned = rut.replace(/\./g, '').replace(/-/g, '');
+
+                // Simular búsqueda de usuario
+                const userData = fetchUserData(displayRutCleaned);
+
+                if (userData) {
+                    userPhoto.src = userData.photo;
+                    displayName.textContent = userData.name;
+                    displayLastname.textContent = userData.lastname;
+                    displayRut.textContent = displayRutCleaned; // Mostrar el RUT limpiado
+                    displayCompany.textContent = userData.company;
+                    displayPosition.textContent = userData.position;
+                    qrResultDiv.innerHTML += `<p class="mt-2 text-blue-600">¡Usuario encontrado y datos mostrados!</p>`;
+                } else {
+                    userPhoto.src = "https://placehold.co/120x120/E0E0E0/888888?text=Foto"; // Resetear foto
+                    displayName.textContent = "No encontrado";
+                    displayLastname.textContent = "No encontrado";
+                    displayRut.textContent = displayRutCleaned; // Mostrar el RUT que se intentó buscar
+                    displayCompany.textContent = "N/A";
+                    displayPosition.textContent = "N/A";
+                    qrResultDiv.innerHTML += `<p class="mt-2 text-red-600">Usuario no encontrado con el RUT: ${displayRutCleaned}</p>`;
+                }
+
+                // Opcional: Detener el escáner después de un escaneo exitoso
+                // html5QrCode.stop().then(() => {
+                //     console.log("Lector detenido después de escanear.");
+                //     startButton.disabled = false;
+                //     stopButton.disabled = true;
+                // }).catch(err => {
+                //     console.error("Error al detener el lector:", err);
+                // });
+            };
+
+            // Función que se ejecuta si hay un error al escanear
+            const onScanFailure = (error) => {
+                // console.warn(`Error al escanear QR: ${error}`); // Demasiado ruidoso para la consola
+            };
+
+            // Evento para iniciar el lector
+            startButton.addEventListener('click', () => {
+                // Solicitar permiso de cámara y empezar a escanear
+                html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, onScanFailure)
+                    .then(() => {
+                        console.log("Lector QR iniciado.");
+                        startButton.disabled = true;
+                        stopButton.disabled = false;
+                        qrResultDiv.innerHTML = '<p>Lector iniciado. Apunta la cámara a un QR.</p>';
+                        // Resetear datos de usuario al iniciar
+                        userPhoto.src = "https://placehold.co/120x120/E0E0E0/888888?text=Foto";
+                        displayName.textContent = "N/A";
+                        displayLastname.textContent = "N/A";
+                        displayRut.textContent = "N/A";
+                        displayCompany.textContent = "N/A";
+                        displayPosition.textContent = "N/A";
+                    })
+                    .catch(err => {
+                        console.error("Error al iniciar el lector QR:", err);
+                        qrResultDiv.innerHTML = `<p class="text-red-500">Error al iniciar la cámara: ${err.message}. Asegúrate de dar permisos.</p>`;
+                        startButton.disabled = false;
+                        stopButton.disabled = true;
+                    });
+            });
+
+            // Evento para detener el lector
+            stopButton.addEventListener('click', () => {
+                html5QrCode.stop().then(() => {
+                    console.log("Lector QR detenido.");
+                    startButton.disabled = false;
+                    stopButton.disabled = true;
+                    qrResultDiv.innerHTML = '<p>Lector detenido. Haz clic en "Iniciar Lector" para escanear de nuevo.</p>';
+                }).catch(err => {
+                    console.error("Error al detener el lector:", err);
+                });
+            });
+        }
+
+        // Inicializar el lector QR cuando la ventana haya cargado
+        window.onload = initializeQrScanner;
+    </script>
+</body>
+</html>
